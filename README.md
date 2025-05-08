@@ -1,73 +1,124 @@
-# Welcome to your Lovable project
 
-## Project info
+# Alert Siren Watchtower
 
-**URL**: https://lovable.dev/projects/f4841188-7e17-43c4-819d-29a949ce87cf
+A real-time log monitoring system that alerts you instantly when critical issues are detected in log files. The system continuously monitors log files for keywords like "host down" and sends alerts directly to your browser with visual and audio notifications.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Real-time Log Monitoring**: Continuously watches specified log files
+- **Instant Alerts**: Visual and audio notifications when critical issues are detected
+- **Live Dashboard**: See all events in real-time without refreshing
+- **Modern UI**: Clean, professional interface with animations
+- **WebSocket Technology**: For true real-time communication
 
-**Use Lovable**
+## Project Structure
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f4841188-7e17-43c4-819d-29a949ce87cf) and start prompting.
+- `src/` - React frontend components
+- `backend/` - Python FastAPI backend
+- `public/` - Static assets including alert sounds
 
-Changes made via Lovable will be committed automatically to this repo.
+## Prerequisites
 
-**Use your preferred IDE**
+- Node.js (v14 or newer)
+- Python 3.8+
+- npm or yarn
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Frontend Setup
 
-Follow these steps:
+```bash
+# Install dependencies
+npm install
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Build the frontend
+npm run build
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Backend Setup
 
-# Step 3: Install the necessary dependencies.
-npm i
+```bash
+# Navigate to the backend directory
+cd backend
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Create a virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install requirements
+pip install -r requirements.txt
+```
+
+## Running the Application
+
+### Start the Backend Server
+
+```bash
+cd backend
+python app.py
+```
+
+The server will start on http://localhost:5000
+
+### Start the Frontend Development Server (for development)
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+For development, the frontend will be available at http://localhost:8080
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Using the Application
 
-**Use GitHub Codespaces**
+1. Open your browser and navigate to http://localhost:5000
+2. The dashboard will connect to the backend and start displaying logs
+3. When a log line contains "host down" or other error patterns, an alert will appear with sound
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Testing Alerts
 
-## What technologies are used for this project?
+To test the alert system without modifying actual log files:
 
-This project is built with:
+```bash
+# Add a normal log entry
+curl "http://localhost:5000/add-log?message=System%20running%20normally"
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Add an error log entry that will trigger an alert
+curl "http://localhost:5000/add-log?message=Server%20123%20is&error=true"
+```
 
-## How can I deploy this project?
+## Customization
 
-Simply open [Lovable](https://lovable.dev/projects/f4841188-7e17-43c4-819d-29a949ce87cf) and click on Share -> Publish.
+### Modifying the Log File Path
 
-## Can I connect a custom domain to my Lovable project?
+Edit `backend/app.py` and change the `LOG_FILE` variable to your desired log file path:
 
-Yes, you can!
+```python
+LOG_FILE = "/path/to/your/logfile.log"
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Changing Alert Patterns
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Edit `backend/app.py` and modify the `ERROR_PATTERNS` list:
+
+```python
+ERROR_PATTERNS = ["host down", "error", "critical", "your_pattern_here"]
+```
+
+### Changing the Alert Sound
+
+Replace the `alert.mp3` file in the `public` directory with your preferred sound.
+
+## Deployment
+
+For production deployment:
+
+1. Build the React frontend: `npm run build`
+2. Configure the Python backend to serve the built files
+3. Set up a proper process manager (like systemd, PM2, or supervisor)
+4. Consider using Nginx as a reverse proxy
+
+## Notes
+
+- For production use, consider implementing proper authentication and security measures
+- Log rotation should be handled by the OS or a dedicated tool
+- This application requires appropriate permissions to read the monitored log files
