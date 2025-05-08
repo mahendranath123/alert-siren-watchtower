@@ -6,6 +6,7 @@ export interface LogEntry {
   message: string;
   level: 'info' | 'warning' | 'error' | 'critical';
   id: string;
+  source?: string; // Add optional source field for Nagios integration
 }
 
 export interface ServerStatus {
@@ -51,11 +52,23 @@ const useWebSocket = (url: string) => {
     // Simulate receiving critical alerts occasionally
     const simulateAlertInterval = setInterval(() => {
       if (Math.random() < 0.3) {
+        const sourceType = Math.random() < 0.5 ? 'system' : 'nagios';
+        let alertMessage = '';
+        
+        if (sourceType === 'nagios') {
+          const services = ['HTTP', 'Database', 'CPU Load', 'Memory Usage', 'Disk Space'];
+          const randomService = services[Math.floor(Math.random() * services.length)];
+          alertMessage = `NAGIOS ALERT: server-${Math.floor(Math.random() * 10)}/${randomService} is CRITICAL - Threshold exceeded`;
+        } else {
+          alertMessage = `CRITICAL ALERT: host down detected on server-${Math.floor(Math.random() * 10)}`;
+        }
+        
         const criticalAlert: LogEntry = {
           timestamp: new Date().toISOString(),
-          message: `CRITICAL ALERT: host down detected on server-${Math.floor(Math.random() * 10)}`,
+          message: alertMessage,
           level: 'critical',
           id: `alert-${Date.now()}`,
+          source: sourceType
         };
         
         setAlert(criticalAlert);

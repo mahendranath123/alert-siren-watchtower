@@ -1,8 +1,8 @@
 
 #!/usr/bin/env python3
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 import asyncio
 import json
 import datetime
@@ -144,6 +144,50 @@ async def add_log(message: str, error: bool = False):
         return {"success": True, "message": "Log entry added"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+# Nagios integration endpoint
+@app.post("/nagios-webhook")
+async def nagios_webhook(request: Request):
+    try:
+        data = await request.json()
+        
+        # Extract relevant information from Nagios notification
+        host_name = data.get("host_name", "Unknown Host")
+        service_name = data.get("service_name", "Unknown Service")
+        state = data.get("state", "UNKNOWN")
+        output = data.get("output", "No details available")
+        
+        # Create alert message
+        message = f"NAGIOS ALERT: {host_name}/{service_name} is {state} - {output}"
+        
+        # Create log entry for the alert
+        log_entry = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "message": message,
+            "level": "critical" if state in ["DOWN", "CRITICAL", "WARNING"] else "info",
+            "id": str(uuid.uuid4()),
+            "source": "nagios"
+        }
+        
+        # Broadcast the alert to all connected clients
+        alert_message = {
+            "type": "alert",
+            "data": log_entry
+        }
+        
+        await manager.broadcast(json.dumps(alert_message))
+        
+        # Also add it to the logs collection
+        log_message = {
+            "type": "log_entry",
+            "data": log_entry
+        }
+        await manager.broadcast(json.dumps(log_message))
+        
+        return JSONResponse(content={"status": "success", "message": "Alert processed"})
+    except Exception as e:
+        print(f"Error processing Nagios webhook: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)

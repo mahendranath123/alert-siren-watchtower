@@ -13,21 +13,64 @@ export const initializeAudio = async () => {
       gainNode.gain.value = 1.5; // Increased gain for louder sound
       gainNode.connect(audioContext.destination);
       
-      const response = await fetch('/alert.mp3');
-      const arrayBuffer = await response.arrayBuffer();
-      // Use the correct method name decodeAudioData
-      alertBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      
-      console.log('Audio system initialized successfully');
+      // Use a try-catch specifically for fetching and decoding the audio
+      try {
+        const response = await fetch('/alert.mp3');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch audio: ${response.status} ${response.statusText}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        alertBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        console.log('Audio system initialized successfully');
+      } catch (decodeError) {
+        console.error('Failed to decode audio data:', decodeError);
+        
+        // Create a fallback audio - a simple beep sound
+        alertBuffer = createFallbackBeepSound(audioContext);
+        console.log('Using fallback audio sound');
+      }
     }
   } catch (error) {
     console.error('Failed to initialize audio:', error);
   }
 };
 
+// Create a fallback beep sound if we can't load the MP3
+function createFallbackBeepSound(context: AudioContext): AudioBuffer {
+  // Create a 1-second buffer at the sample rate of the AudioContext
+  const sampleRate = context.sampleRate;
+  const buffer = context.createBuffer(1, sampleRate, sampleRate);
+  
+  // Fill the buffer with a simple beep waveform
+  const data = buffer.getChannelData(0);
+  const frequency = 880; // A high-pitched beep
+  
+  for (let i = 0; i < sampleRate; i++) {
+    // Create a sine wave
+    data[i] = Math.sin(2 * Math.PI * frequency * i / sampleRate);
+    
+    // Apply an envelope to avoid clicks
+    if (i < sampleRate * 0.05) {
+      // Fade in
+      data[i] *= (i / (sampleRate * 0.05));
+    } else if (i > sampleRate * 0.9) {
+      // Fade out
+      data[i] *= (1 - (i - sampleRate * 0.9) / (sampleRate * 0.1));
+    }
+  }
+  
+  return buffer;
+}
+
 export const playAlertSound = (volume = 1.5) => {
   if (audioContext && alertBuffer && gainNode) {
     try {
+      // Resume the AudioContext if it's suspended (browser autoplay policy)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
       // Create a sound source
       const source = audioContext.createBufferSource();
       source.buffer = alertBuffer;
@@ -61,7 +104,19 @@ export const playAlertSound = (volume = 1.5) => {
         }
       }, 500);
       
-      console.log('Alert sound played with increased volume');
+      // For Nagios critical alerts (high volume), play a third time for extra urgency
+      if (volume >= 2.0) {
+        setTimeout(() => {
+          if (audioContext && alertBuffer && gainNode) {
+            const thirdSource = audioContext.createBufferSource();
+            thirdSource.buffer = alertBuffer;
+            thirdSource.connect(gainNode);
+            thirdSource.start();
+          }
+        }, 1000);
+      }
+      
+      console.log('Alert sound played with volume:', volume);
     } catch (error) {
       console.error('Error playing alert sound:', error);
     }

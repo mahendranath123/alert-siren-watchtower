@@ -8,6 +8,7 @@ import { initializeAudio } from '@/utils/audioUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTheme } from './ThemeProvider';
 import { cn } from '@/lib/utils';
+import { AlertTriangle, Siren } from 'lucide-react';
 
 const Dashboard = () => {
   const { logs, alert, status, clearAlert } = useWebSocket('ws://localhost:5000/ws');
@@ -29,6 +30,10 @@ const Dashboard = () => {
   
   const isDarkMode = theme === 'dark';
 
+  // Count Nagios alerts
+  const nagiosAlerts = logs.filter(log => log.source === 'nagios' && log.level === 'critical').length;
+  const systemAlerts = logs.filter(log => (!log.source || log.source === 'system') && log.level === 'critical').length;
+
   return (
     <div className={cn(
       "min-h-screen flex flex-col transition-colors duration-200",
@@ -45,7 +50,15 @@ const Dashboard = () => {
             isDarkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
           )}>
             <CardHeader>
-              <CardTitle className={isDarkMode ? "text-white" : "text-gray-800"}>System Status</CardTitle>
+              <CardTitle className={cn(
+                "text-lg",
+                isDarkMode ? "text-white" : "text-gray-800"
+              )}>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={18} className="text-yellow-500" />
+                  <span>System Status</span>
+                </div>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-green-500">Monitoring</div>
@@ -63,20 +76,28 @@ const Dashboard = () => {
             isDarkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
           )}>
             <CardHeader>
-              <CardTitle className={isDarkMode ? "text-white" : "text-gray-800"}>Log Path</CardTitle>
+              <CardTitle className={cn(
+                "text-lg",
+                isDarkMode ? "text-white" : "text-gray-800"
+              )}>
+                <div className="flex items-center gap-2">
+                  <Siren size={18} className="text-blue-500" />
+                  <span>Nagios Integration</span>
+                </div>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className={cn(
                 "font-mono text-sm p-2 rounded",
                 isDarkMode ? "bg-gray-800 text-yellow-400" : "bg-gray-100 text-yellow-600"
               )}>
-                /var/log/mylog.log
+                /nagios-webhook
               </div>
               <div className={cn(
                 "text-xs mt-2",
                 isDarkMode ? "text-gray-400" : "text-gray-500"
               )}>
-                Monitoring for "host down" messages
+                Connect Nagios alerts to this endpoint
               </div>
             </CardContent>
           </Card>
@@ -86,32 +107,39 @@ const Dashboard = () => {
             isDarkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
           )}>
             <CardHeader>
-              <CardTitle className={isDarkMode ? "text-white" : "text-gray-800"}>Alert Statistics</CardTitle>
+              <CardTitle className={cn(
+                "text-lg",
+                isDarkMode ? "text-white" : "text-gray-800"
+              )}>Alert Statistics</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex justify-between text-sm">
                 <div>
-                  <div className={isDarkMode ? "text-gray-400" : "text-gray-500"}>Today:</div>
+                  <div className={isDarkMode ? "text-gray-400" : "text-gray-500"}>System:</div>
                   <div className={cn(
                     "text-2xl font-bold",
                     isDarkMode ? "text-red-400" : "text-red-500"
                   )}>
-                    {logs.filter(log => log.level === 'critical').length}
+                    {systemAlerts}
                   </div>
                 </div>
                 <div>
-                  <div className={isDarkMode ? "text-gray-400" : "text-gray-500"}>This Week:</div>
+                  <div className={isDarkMode ? "text-gray-400" : "text-gray-500"}>Nagios:</div>
                   <div className={cn(
                     "text-2xl font-bold",
-                    isDarkMode ? "text-orange-400" : "text-orange-500"
-                  )}>12</div>
+                    isDarkMode ? "text-blue-400" : "text-blue-500"
+                  )}>
+                    {nagiosAlerts}
+                  </div>
                 </div>
                 <div>
-                  <div className={isDarkMode ? "text-gray-400" : "text-gray-500"}>This Month:</div>
+                  <div className={isDarkMode ? "text-gray-400" : "text-gray-500"}>Total:</div>
                   <div className={cn(
                     "text-2xl font-bold",
                     isDarkMode ? "text-yellow-400" : "text-yellow-500"
-                  )}>27</div>
+                  )}>
+                    {systemAlerts + nagiosAlerts}
+                  </div>
                 </div>
               </div>
             </CardContent>
