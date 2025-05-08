@@ -1,34 +1,28 @@
 
-// Utility for playing alert sounds
 let audioContext: AudioContext | null = null;
-let audioBuffer: AudioBuffer | null = null;
-let isAudioLoaded = false;
+let alertBuffer: AudioBuffer | null = null;
 
 export const initializeAudio = async () => {
   try {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const response = await fetch('/alert.mp3');
-    const arrayBuffer = await response.arrayBuffer();
-    audioBuffer = await audioContext.decodeAudioBuffer(arrayBuffer);
-    isAudioLoaded = true;
-    console.log('Audio initialized successfully');
+    if (!audioContext) {
+      audioContext = new AudioContext();
+      const response = await fetch('/alert.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+      // Use the correct method name decodeAudioData
+      alertBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    }
   } catch (error) {
     console.error('Failed to initialize audio:', error);
   }
 };
 
 export const playAlertSound = () => {
-  if (!isAudioLoaded || !audioContext || !audioBuffer) {
-    console.warn('Audio not loaded yet');
-    return;
-  }
-
-  try {
+  if (audioContext && alertBuffer) {
     const source = audioContext.createBufferSource();
-    source.buffer = audioBuffer;
+    source.buffer = alertBuffer;
     source.connect(audioContext.destination);
-    source.start(0);
-  } catch (error) {
-    console.error('Failed to play alert sound:', error);
+    source.start();
+  } else {
+    console.warn('Audio not initialized. Call initializeAudio first.');
   }
 };

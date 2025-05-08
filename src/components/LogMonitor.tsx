@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LogEntry } from '@/hooks/useWebSocket';
 import { cn } from '@/lib/utils';
+import { useTheme } from './ThemeProvider';
 
 interface LogMonitorProps {
   logs: LogEntry[];
@@ -11,6 +12,7 @@ interface LogMonitorProps {
 
 const LogMonitor = ({ logs }: LogMonitorProps) => {
   const [filter, setFilter] = useState<string | null>(null);
+  const { theme } = useTheme();
   
   const filteredLogs = filter 
     ? logs.filter(log => log.level === filter)
@@ -26,16 +28,27 @@ const LogMonitor = ({ logs }: LogMonitorProps) => {
     }
   };
   
+  const isDarkMode = theme === 'dark';
+  
   return (
-    <Card className="bg-gray-900 border-gray-700 shadow-lg">
-      <CardHeader className="border-b border-gray-800 pb-3">
+    <Card className={cn(
+      "border shadow-lg transition-colors duration-200",
+      isDarkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
+    )}>
+      <CardHeader className={cn(
+        "border-b pb-3 transition-colors duration-200",
+        isDarkMode ? "border-gray-800" : "border-gray-200"
+      )}>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-white text-lg">Log Monitor</CardTitle>
+          <CardTitle className={cn(
+            "text-lg",
+            isDarkMode ? "text-white" : "text-gray-800"
+          )}>Log Monitor</CardTitle>
           <div className="flex gap-2">
             <Badge 
               className={cn(
                 "cursor-pointer", 
-                filter === 'info' ? 'bg-blue-500' : 'bg-blue-500/30'
+                filter === 'info' ? 'bg-blue-500' : isDarkMode ? 'bg-blue-500/30' : 'bg-blue-200'
               )}
               onClick={() => setFilter(filter === 'info' ? null : 'info')}
             >
@@ -44,7 +57,7 @@ const LogMonitor = ({ logs }: LogMonitorProps) => {
             <Badge 
               className={cn(
                 "cursor-pointer", 
-                filter === 'warning' ? 'bg-yellow-500' : 'bg-yellow-500/30'
+                filter === 'warning' ? 'bg-yellow-500' : isDarkMode ? 'bg-yellow-500/30' : 'bg-yellow-200'
               )}
               onClick={() => setFilter(filter === 'warning' ? null : 'warning')}
             >
@@ -53,7 +66,7 @@ const LogMonitor = ({ logs }: LogMonitorProps) => {
             <Badge 
               className={cn(
                 "cursor-pointer", 
-                filter === 'error' || filter === 'critical' ? 'bg-red-500' : 'bg-red-500/30'
+                filter === 'error' || filter === 'critical' ? 'bg-red-500' : isDarkMode ? 'bg-red-500/30' : 'bg-red-200'
               )}
               onClick={() => setFilter(filter === 'error' || filter === 'critical' ? null : 'error')}
             >
@@ -63,14 +76,18 @@ const LogMonitor = ({ logs }: LogMonitorProps) => {
         </div>
       </CardHeader>
       <CardContent className="p-0 max-h-[500px] overflow-y-auto scrollbar-thin">
-        <div className="divide-y divide-gray-800">
+        <div className={cn(
+          "divide-y transition-colors duration-200",
+          isDarkMode ? "divide-gray-800" : "divide-gray-200"
+        )}>
           {filteredLogs.length > 0 ? (
             filteredLogs.map((log) => (
               <div 
                 key={log.id} 
                 className={cn(
                   "p-3 text-sm flex items-start gap-3 animate-fade-in",
-                  log.level === 'critical' && "bg-red-900/20"
+                  log.level === 'critical' && (isDarkMode ? "bg-red-900/20" : "bg-red-50"),
+                  isDarkMode ? "text-gray-100" : "text-gray-800"
                 )}
               >
                 <Badge className={cn("mt-0.5", getLevelColor(log.level))}>
@@ -79,18 +96,24 @@ const LogMonitor = ({ logs }: LogMonitorProps) => {
                 <div className="flex-1">
                   <div className={cn(
                     "font-mono",
-                    log.level === 'critical' && "font-bold text-red-400"
+                    log.level === 'critical' && (isDarkMode ? "font-bold text-red-400" : "font-bold text-red-600")
                   )}>
                     {log.message}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">
+                  <div className={cn(
+                    "text-xs mt-1",
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  )}>
                     {new Date(log.timestamp).toLocaleTimeString()}
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="p-6 text-center text-gray-500">
+            <div className={cn(
+              "p-6 text-center",
+              isDarkMode ? "text-gray-500" : "text-gray-400"
+            )}>
               No logs matching the current filter
             </div>
           )}
