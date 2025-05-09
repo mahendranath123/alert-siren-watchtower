@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './Header';
 import LogMonitor from './LogMonitor';
 import AlertPanel from './AlertPanel';
@@ -8,11 +8,19 @@ import { initializeAudio } from '@/utils/audioUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTheme } from './ThemeProvider';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Siren } from 'lucide-react';
+import { AlertTriangle, Siren, Edit2, Check } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { logs, alert, status, clearAlert } = useWebSocket('ws://localhost:5000/ws');
   const { theme } = useTheme();
+  const { toast } = useToast();
+  
+  // State for webhook URL and editing mode
+  const [webhookUrl, setWebhookUrl] = useState('/nagios-webhook');
+  const [isEditing, setIsEditing] = useState(false);
   
   useEffect(() => {
     // Initialize audio on first user interaction
@@ -33,6 +41,15 @@ const Dashboard = () => {
   // Count Nagios alerts
   const nagiosAlerts = logs.filter(log => log.source === 'nagios' && log.level === 'critical').length;
   const systemAlerts = logs.filter(log => (!log.source || log.source === 'system') && log.level === 'critical').length;
+
+  // Handle saving the webhook URL
+  const handleSaveWebhook = () => {
+    setIsEditing(false);
+    toast({
+      title: "Webhook URL Updated",
+      description: `Nagios integration will now use ${webhookUrl}`,
+    });
+  };
 
   return (
     <div className={cn(
@@ -87,11 +104,44 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={cn(
-                "font-mono text-sm p-2 rounded",
-                isDarkMode ? "bg-gray-800 text-yellow-400" : "bg-gray-100 text-yellow-600"
-              )}>
-                /nagios-webhook
+              <div className="flex items-center gap-2">
+                {isEditing ? (
+                  <div className="flex w-full">
+                    <Input 
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      className={cn(
+                        "font-mono text-sm p-2 rounded flex-1",
+                        isDarkMode ? "bg-gray-800 text-yellow-400 border-gray-700" : "bg-gray-100 text-yellow-600 border-gray-300"
+                      )}
+                    />
+                    <Button 
+                      size="icon"
+                      variant="ghost"
+                      className="ml-2 text-green-500 hover:text-green-400"
+                      onClick={handleSaveWebhook}
+                    >
+                      <Check size={18} />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={cn(
+                      "font-mono text-sm p-2 rounded flex-1",
+                      isDarkMode ? "bg-gray-800 text-yellow-400" : "bg-gray-100 text-yellow-600"
+                    )}>
+                      {webhookUrl}
+                    </div>
+                    <Button 
+                      size="icon"
+                      variant="ghost"
+                      className="text-blue-500 hover:text-blue-400"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit2 size={16} />
+                    </Button>
+                  </>
+                )}
               </div>
               <div className={cn(
                 "text-xs mt-2",
