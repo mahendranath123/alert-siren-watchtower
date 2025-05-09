@@ -7,12 +7,25 @@ export interface LogEntry {
   level: 'info' | 'warning' | 'error' | 'critical';
   id: string;
   source?: string; // Add optional source field for Nagios integration
+  hostname?: string; // Add hostname field for selective host monitoring
+  status?: string; // Add status field for host status (UP/DOWN)
 }
 
 export interface ServerStatus {
   status: 'connected' | 'disconnected' | 'error';
   lastUpdate: Date;
 }
+
+// List of important hosts to monitor (subset from your shell script)
+const IMPORTANT_HOSTS = [
+  "UFO_MOVIEZ_PVT_LTD_1Gig_ILL",
+  "Pharma_Access_Pvt_Ltd_10G_SW",
+  "Infinity_Cars_Pvt_Ltd_Turbhe_CKT_5503_Primay_Nerul_10G_SW",
+  "AR_Gold_Pvt_Ltd_Primary_Fiber_MKT",
+  "Skanem_10G_SW",
+  "Work_Store_Limited_Primary_From_BMC_SW"
+  // You can add more hosts from your list as needed
+];
 
 const useWebSocket = (url: string) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -49,18 +62,21 @@ const useWebSocket = (url: string) => {
       setLogs(prev => [newLog, ...prev.slice(0, 99)]);
     }, 3000);
 
-    // Simulate receiving critical alerts occasionally
+    // Simulate receiving critical alerts for specific hosts occasionally
     const simulateAlertInterval = setInterval(() => {
       if (Math.random() < 0.3) {
-        const sourceType = Math.random() < 0.5 ? 'system' : 'nagios';
+        const sourceType = Math.random() < 0.7 ? 'nagios' : 'system';
         let alertMessage = '';
+        let hostname = '';
+        let status = 'DOWN';
         
         if (sourceType === 'nagios') {
-          const services = ['HTTP', 'Database', 'CPU Load', 'Memory Usage', 'Disk Space'];
-          const randomService = services[Math.floor(Math.random() * services.length)];
-          alertMessage = `NAGIOS ALERT: server-${Math.floor(Math.random() * 10)}/${randomService} is CRITICAL - Threshold exceeded`;
+          // Select a random important host from the list
+          hostname = IMPORTANT_HOSTS[Math.floor(Math.random() * IMPORTANT_HOSTS.length)];
+          alertMessage = `HOST NOTIFICATION: ${hostname} is ${status} - Host unreachable`;
         } else {
-          alertMessage = `CRITICAL ALERT: host down detected on server-${Math.floor(Math.random() * 10)}`;
+          hostname = `server-${Math.floor(Math.random() * 10)}`;
+          alertMessage = `CRITICAL ALERT: host down detected on ${hostname}`;
         }
         
         const criticalAlert: LogEntry = {
@@ -68,7 +84,9 @@ const useWebSocket = (url: string) => {
           message: alertMessage,
           level: 'critical',
           id: `alert-${Date.now()}`,
-          source: sourceType
+          source: sourceType,
+          hostname: hostname,
+          status: status
         };
         
         setAlert(criticalAlert);
@@ -78,6 +96,23 @@ const useWebSocket = (url: string) => {
         setTimeout(() => {
           setAlert(null);
         }, 10000);
+        
+        // Simulate recovery after some time
+        setTimeout(() => {
+          if (Math.random() > 0.3) { // 70% chance of recovery
+            const recoveryLog: LogEntry = {
+              timestamp: new Date().toISOString(),
+              message: `HOST NOTIFICATION: ${hostname} is UP - Host has recovered`,
+              level: 'info',
+              id: `recovery-${Date.now()}`,
+              source: sourceType,
+              hostname: hostname,
+              status: 'UP'
+            };
+            
+            setLogs(prev => [recoveryLog, ...prev.slice(0, 99)]);
+          }
+        }, Math.random() * 15000 + 5000); // Recovery between 5-20 seconds later
       }
     }, 15000);
 
